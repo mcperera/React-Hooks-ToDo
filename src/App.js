@@ -1,7 +1,7 @@
 import React, { useState, useReducer, useEffect } from "react";
 import "./App.css";
 
-const Notification = ({ show }) => {
+const Notification = ({ show, notifyMsg }) => {
   useEffect(() => {
     setTimeout(() => {
       show();
@@ -9,7 +9,7 @@ const Notification = ({ show }) => {
   });
   return (
     <h3 style={{ position: "absolute", margin: "0", top: "0", right: "0" }}>
-      Task Added
+      {notifyMsg}
     </h3>
   );
 };
@@ -17,7 +17,10 @@ const Notification = ({ show }) => {
 const ACTIONS = {
   ADD_TASK: "ADD_TASK",
   CLEAR_ALL: "CLEAR_ALL",
-  HIDE_NOTIFY: "HIDE_NOTIFY",
+  NOTIFY: "NOTIFY",
+  IS_NOTIFY: "IS_NOTIFY",
+  REMOVE: "REMOVE",
+  COMPLETE: "COMPLETE",
 };
 
 const reducer = (state, action) => {
@@ -27,19 +30,29 @@ const reducer = (state, action) => {
     case ACTIONS.ADD_TASK:
       return {
         ...state,
-        tasks: [...state.tasks, action.payload],
+        tasks: [...state.tasks, action.payload.newTask],
         isNotify: true,
+        notifyMsg: action.payload.notifyMsg,
+      };
+    case ACTIONS.REMOVE:
+      return {
+        ...state,
+        isNotify: true,
+        notifyMsg: action.payload.notifyMsg,
+        tasks: state.tasks.filter((task) => task.id !== action.payload.id),
       };
     case ACTIONS.CLEAR_ALL:
       return { ...state, tasks: [] };
-    case ACTIONS.HIDE_NOTIFY:
+    case ACTIONS.NOTIFY:
+      return { ...state, isNotify: true, notifyMsg: action.payload };
+    case ACTIONS.IS_NOTIFY:
       return { ...state, isNotify: false };
     default:
       return state;
   }
 };
 
-const initialState = { tasks: [], isNotify: false };
+const initialState = { tasks: [], isNotify: false, notifyMsg: "" };
 
 function App() {
   const [task, setTask] = useState("");
@@ -52,25 +65,58 @@ function App() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const newTask = { id: new Date().getTime().toString(), taskTitle: task };
-    dispatch({ type: ACTIONS.ADD_TASK, payload: newTask });
-    setTask("");
+
+    if (task) {
+      const newTask = {
+        id: new Date().getTime().toString(),
+        taskTitle: task,
+        isComplete: false,
+      };
+      dispatch({
+        type: ACTIONS.ADD_TASK,
+        payload: { newTask: newTask, notifyMsg: "Task Added!" },
+      });
+      setTask("");
+    } else {
+      dispatch({
+        type: ACTIONS.NOTIFY,
+        payload: "Invalid Input!",
+      });
+    }
+  };
+
+  const handleRemove = (id) => {
+    dispatch({
+      type: ACTIONS.REMOVE,
+      payload: { id, notifyMsg: "Task Removed!" },
+    });
   };
 
   const hideNotification = () => {
-    dispatch({ type: ACTIONS.HIDE_NOTIFY });
+    dispatch({
+      type: ACTIONS.IS_NOTIFY,
+    });
   };
 
   return (
     <div className='App'>
-      {state.isNotify && <Notification show={hideNotification} />}
+      {state.isNotify && (
+        <Notification show={hideNotification} notifyMsg={state.notifyMsg} />
+      )}
       <form onSubmit={handleSubmit}>
         <input type='text' name='task' value={task} onChange={handleChange} />
         <button type='submit'>Add</button>
-        {state.tasks.map((task) => {
-          return <h3 key={task.id}>{task.taskTitle}</h3>;
-        })}
       </form>
+      {state.tasks.map((task, index) => {
+        return (
+          <div key={index}>
+            <h3 key={task.id}>{task.taskTitle}</h3>
+            <button key={index} onClick={() => handleRemove(task.id)}>
+              Remove
+            </button>
+          </div>
+        );
+      })}
       <button
         onClick={() => dispatch({ type: ACTIONS.CLEAR_ALL })}
         style={{ display: state.tasks.length === 0 ? "none" : "inline-block" }}
