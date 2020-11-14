@@ -34,6 +34,32 @@ const reducer = (state, action) => {
         isNotify: true,
         notifyMsg: action.payload.notifyMsg,
       };
+    // case ACTIONS.COMPLETE:
+    //   const updatedTasks = state.tasks.filter((task) => {
+    //     if (task.id === action.payload.id) {
+    //       task.isComplete = action.payload.isComplete;
+    //     }
+    //     return task;
+    //   });
+    //   console.log(updatedTask);
+    //   return {
+    //     ...state,
+    //     tasks: updatedTasks,
+    //   };
+    case ACTIONS.COMPLETE:
+      return {
+        ...state,
+        isNotify: true,
+        notifyMsg: action.payload.isComplete
+          ? "Task Completed!"
+          : "Marked as Incomplete!",
+        tasks: state.tasks.filter((task) => {
+          if (task.id === action.payload.id) {
+            task.isComplete = action.payload.isComplete;
+          }
+          return task;
+        }),
+      };
     case ACTIONS.REMOVE:
       return {
         ...state,
@@ -57,6 +83,12 @@ const initialState = { tasks: [], isNotify: false, notifyMsg: "" };
 function App() {
   const [task, setTask] = useState("");
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  const hideNotification = () => {
+    dispatch({
+      type: ACTIONS.IS_NOTIFY,
+    });
+  };
 
   const handleChange = (e) => {
     const task = e.target.value;
@@ -92,9 +124,10 @@ function App() {
     });
   };
 
-  const hideNotification = () => {
+  const completeDispatch = (id, isComplete) => {
     dispatch({
-      type: ACTIONS.IS_NOTIFY,
+      type: ACTIONS.COMPLETE,
+      payload: { id, isComplete: !isComplete },
     });
   };
 
@@ -111,6 +144,12 @@ function App() {
         return (
           <div key={index}>
             <h3 key={task.id}>{task.taskTitle}</h3>
+            <input
+              key={index + 12}
+              type='checkbox'
+              checked={task.isComplete}
+              onChange={() => completeDispatch(task.id, task.isComplete)}
+            />
             <button key={index} onClick={() => handleRemove(task.id)}>
               Remove
             </button>
